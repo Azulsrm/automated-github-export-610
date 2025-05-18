@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "mercado-610-palenque",
+  "private_key_id": "80b915824fac6783b06b2f90c263ae2a7ca10f25",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQChmURbQ8KOi3lA\nbfBtOJaQXt6Zs6k0mzd9tiea0liowh466bGErCLyKBnHO+7h9bB+73xtvJv/bEIp\njeF73wxATDonfaLh3YHwoDToEADV/KEHvm7mP+sfpz/9qjSu9UWYyx6G/5KuViNH\nP1XRcbV4Ti7Bnxw05Uo3A4QsLMJzfylIr4YkrfCSy5YKCDwXJ7tvtqcvCwcgyygm\n886DPswA9CDppg1IeiyUo9x08hzPibt2znudk9svj8w8Js0M2FwyoSlUU2I+S0FL\nSToM3dkVfBXh8BtN4cKMYcsaX7DF3qWVtWn4Rb2oja9wf+ujdxNT99H3laJ2InA3\nzuo+YHQZAgMBAAECggEACXNQf2iGYkEJ2u4TAhrYbfepBk1uzHgfVfy8ct4bopLn\nowOzsVHtIULzGacJoLFLnGtzrWnlqERegiudT4SLJN97BIA2cbBl6aU/iCrCFxbq\ncUIpHidddWvEiZiAnZK+eoxhFqgE81PE8GUQfGqCoFcs039ImQH9GxvbiPHSgAqM\nnGKeyuMo27k7EdzRXZFtLwdPiqkFqua0BUJ6YfOehxiZFc+155jkLnmj3g2vpBPI\njvNgUWS6u70E+MuWvf54M9G9ZxeugP018VxVE2+oLTMLRulycaKCAeg1AlB9T5j0\nUeT16sre7jrvLR+Yr8j/rJR1gU7hvhLNCP63WHBrYQKBgQDNaccCx0q7e841JfqP\nC9AzVHLBJuYUuBO6B5nKv7v15wA3hjuV3/Gv/Cara1DyaMiuwxNBMDnVgkBXBaw4\njEm93Px87Oi1FfyIJ/9HwMmFVE4ChX7KynlfsHcdo+FPFPW/7S5avqXK0SRxmtSu\nHq2S4COoYvc/CRcYLeWjQ0O3/QKBgQDJZTdL0yvUZt6lCXc3xbvlO1aEsTrJ+z0A\nZ4An5JirFShPjmDSj9gTXsptZUGrmONiSII8HMW7A6toiMbBo26LTRjyht8DrY8M\n8t3u7awnb2MIrU3pfSeTPCFupDbkbH6nwArsgjMjFRftAoDFmPrgZajUXd26atN5\ncw/ckTyhTQKBgCA8gnPoLM1Bf7oNjMXYN8NmdF/lp+QGg2oFeVg9QNU1fG46Ta2W\nqIpSywrJ27k/QodSq/nmBJ2CRHCjvkRdl9EJFkLQtzB8E9aWWFS9Z6LZ+SgiJSTU\nI7olqnvnVRuhEXQeV9D77G7o5YxCnS/6Nok/TblGVsD4vzwXL9uwWbdNAoGBAIsN\nqape+cpD5MJK0NffXSafW9Nuk0rWf34B+IiS2550k0qq4ctAqk5lipsR6M/UVluL\n+PAMZbIEjJs2pRUaBL+F0g3SdbUSZszn+7h2vgDUdaqODleCpIqSX/sGwyfgiWrF\nvEUkeK5maAirS8IjKEU7q+BFl0yZab5XZcJDPXuZAoGAA8ff1rHh6I+EYOa6+ru0\nPgGbtgQp4UIyL0kqm3LsjKPETySzKP23Fwvtbo5laPkVchOF3ybXH8SmzJJJQz05\n3zJNEv7mXv2omEPQG573M9kwltl6JjU5DQEXFvYEYY9g8R96CZM3RQjjAv9hi+Gx\nM6x2YtDTos0AwAtS2JqHk78=\n-----END PRIVATE KEY-----\n",
+  "client_email": "upload-drive-mercado610@mercado-610-palenque.iam.gserviceaccount.com",
+  "client_id": "106478009244043449760",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/upload-drive-mercado610%40mercado-610-palenque.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
