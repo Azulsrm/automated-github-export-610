@@ -24,7 +24,7 @@ jobs:
         pip install pandas numpy requests openpyxl google-auth google-api-python-client
 
     - name: Ejecutar script
-      run: python script.py  # Asegúrate de que así se llame tu archivo
+      run: python script_mercado610palenque.py  # NOMBRE
 
     - name: Crear Release (si no existe)
       id: create_release
