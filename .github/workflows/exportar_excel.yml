@@ -3,7 +3,7 @@ name: Exportar Excel y subir a Release
 on:
   schedule:
     - cron: '0,30 15-23 * * 1-6'  # Cada 30 min de 9 a 17 CDMX (15 a 23 UTC), lunes a sábado
-    - cron: '0,30 0-2 * * 2-7'    # Cada 30 min (00:00 a 02:30 UTC), pero de martes a domingo
+    - cron: '0,30 0-2 * * 2-7'    # Cada 30 min de 18 a 21 CDMX (00:00 a 02:30 UTC), pero de martes a domingo
 
 jobs:
   exportar_y_subir:
