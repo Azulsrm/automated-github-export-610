@@ -17,7 +17,9 @@ jobs:
 
     steps:
       - name: Verificar ejecución
-        run: echo "Workflow activado a las $(date)"
+        run: |
+          echo "Hora UTC:   $(date -u)"
+          echo "Hora CDMX:  $(TZ=America/Mexico_City date)"
 
       - name: Clonar repo
         uses: actions/checkout@v3
