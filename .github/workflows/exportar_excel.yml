@@ -2,14 +2,17 @@ name: Exportar Excel y subir a Release
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Ejecuta cada 30 minutos
-  workflow_dispatch:
+    - cron: '0,30 15-23 * * 1-6'  # Cada 30 min de 9 a 17 CDMX (15 a 23 UTC), lunes a sábado
+    - cron: '0,30 0-2 * * 2-7'    # Cada 30 min (00:00 a 02:30 UTC), pero de martes a domingo
 
 jobs:
   exportar_y_subir:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Verificar ejecución
+      run: echo "Workflow activado a las $(date)"
+      
     - name: Clonar repo
       uses: actions/checkout@v3
 
@@ -26,13 +29,13 @@ jobs:
     - name: Ejecutar script
       run: python script_mercado610palenque.py  # NOMBRE
 
-    - name: Crear Release (si no existe)
-      id: create_release
+    - name: Crear Release (forzar reemplazo)
       uses: softprops/action-gh-release@v1
       with:
         tag_name: auto
         name: Actualización automática
         body: Base limpia generada automáticamente
+        prerelease: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
