@@ -1,15 +1,16 @@
-
-import pandas as pd
-import numpy as np
-import requests
-from io import BytesIO
-from datetime import datetime
-import re
+# Librerías necesarias
+import pandas as pd                                     # Manipulación de datos
+import numpy as np                                      # Operaciones numéricas
+import requests                                         # Llamadas HTTP
+import re                                               # Expresiones regulares
+from math import radians, sin, cos, sqrt, atan2         # Cálculos trigonométricos / distancia geográfica
+from datetime import datetime                           # Fechas y tiempos
+from io import BytesIO                                  # Manejo de datos binarios
 
 def main():
-    print("🚀 Ejecutando limpieza de Mercado 610 Palenque...")
-
-    sheet_id = "1nU3WFeBWpAwLlyrxcrB_oDR4O7r0c4qy6K2a7spWkQo"
+    
+    # ID del archivo de 02. Soriana Palenque  (Respuestas)
+    sheet_id = "1QcNpFwsJANgme-cxlSM0TMoVHfWB1ASgkanJAFwIzJw" 
 
     def leer_hoja(sheet_id, nombre_hoja):
         url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -21,9 +22,9 @@ def main():
     df = leer_hoja(sheet_id, "Respuestas de formulario 1")
     enc_df = leer_hoja(sheet_id, "ENC")
 
-    # 🔹 Limpieza inicial del dataset <a name="limpieza-inicial"></a>
+# 🔹Limpieza inicial del dataset
 
-    #----------------------- Etapa 1. Eliminación de columnas innecesarias  -----------------------------
+#----------------------- Etapa 1. Eliminación de columnas innecesarias  -----------------------------
 
     ## Son 5 columnas que se utilizan unicamente cunado se siembra la tarjeta digital
     df = df.drop(columns=['¿Quisiera que habilitemos su app y su tarjeta digital para que pueda obtener todos los beneficios?',
@@ -32,7 +33,7 @@ def main():
         'En vista de que no hemos podido descargar la App ¿Le gustaría obtener la tarjeta física Soriana YA?',
         'Registro de 13 dígitos de la tarjeta digital'], errors='ignore')
 
-    #----------------------- Etapa 2. Renombrado de columnas ------------------------------------
+#----------------------- Etapa 2. Renombrado de columnas ------------------------------------
     df = df.rename(columns={
         'Marca temporal': 'marca_temporal',
         'Dirección de correo electrónico': 'correo_encuestador',
@@ -55,29 +56,18 @@ def main():
         'Colonia': 'colonia',
         'Código Postal': 'codigo_postal',
         'Después de todo lo que le he indicado, podría decirme ¿Ya conocía este programa de lealtad?': 'conocia_programa',
+        'Código de verificación': 'codigo_verificacion',
     })
 
-    ##----------------------- Etapa 3. Conversión de tipos de datos ------------------------------------
-    columnas_a_convertir = [
-        'ultimos8_tarjeta',
-        'telefono',
-        'dia_nacimiento',
-        'mes_nacimiento',
-        'anio_nacimiento',
-        'codigo_postal'
-    ]
+# ----------------------- Etapa 3. Creación de columnas auxiliares  ------------------------------------
 
-    df[columnas_a_convertir] = df[columnas_a_convertir].astype('Int64')  # Soporta NaN
-
-    # ----------------------- Etapa 4. Creación de columnas auxiliares  ------------------------------------
-
-    ## 1. fila_forms: Número de registro en la base original
+    ## -------------------1. fila_forms: Número de registro en la base original
     df['fila_forms'] = df.index + 2
     df['formato'] = 'Mercado'
     df['Sucursal'] = 610
     df['Tienda'] = 'Palenque'
 
-    ## 2.nombre_completo: Concatenación del nombre del encuestado
+    ## ------------------- 2.nombre_completo: Concatenación del nombre del encuestado
     df['nombre_completo'] = (
         df[['nombre', 'apellido_paterno', 'apellido_materno']]
         .fillna('').astype(str)
@@ -85,7 +75,7 @@ def main():
         .str.strip()
     )
 
-    ## 3. correo_completo: Concatenación del correo del encuestado
+    ## ------------------ 3. correo_completo: Concatenación del correo del encuestado
 
     # Asegurarse de que todos los valores sean string y quitar espacios
     df['correo_cliente'] = df['correo_cliente'].astype(str).str.strip()
@@ -103,8 +93,7 @@ def main():
         if row['correo_cliente'] and row['dominio_correo'] else None, axis=1
     )
 
-    #Fecha_completa
-    from datetime import datetime
+    #-------------------- 4.Fecha_completa
     ##-------------------- Máscara para registros con día, mes y año no nulos --------------------
     mask_fecha_completa = df[['anio_nacimiento', 'mes_nacimiento', 'dia_nacimiento']].notna().all(axis=1)
     # -------------------- Crear columna fecha_completa solo donde hay datos --------------------
@@ -120,6 +109,42 @@ def main():
         ),
         errors='coerce'
     )
+## ----------------- 4. telefono_validador
+    ### Asegurarse de que los campos sean texto y quitar espacios
+    df['telefono'] = df['telefono'].astype(str).str.strip()
+    df['codigo_verificacion'] = df['codigo_verificacion'].astype(str).str.strip()
+    
+    ### Reemplazar valores vacíos o inválidos por NaN
+    df['telefono'] = df['telefono'].replace(['', 'nan', 'None'], np.nan)
+    df['codigo_verificacion'] = df['codigo_verificacion'].replace(['', 'nan', 'None'], np.nan)
+    
+    ### Validar que teléfono tenga exactamente 10 dígitos y que solo contenga números
+    df['telefono'] = df['telefono'].where(df['telefono'].str.match(r'^\d{10}$'))
+    
+    ### Validar que código tenga exactamente 2 dígitos (rellenar con ceros si hace falta)
+    df['codigo_verificacion'] = df['codigo_verificacion'].where(df['codigo_verificacion'].str.match(r'^\d{1,2}$')).str.zfill(2)
+    
+    ### Crear columna final solo si ambos datos son válidos
+    mask = df['telefono'].notna() & df['codigo_verificacion'].notna()
+    df['telefono_codigo'] = np.where(mask,
+        df['telefono'] + df['codigo_verificacion'],
+        np.nan
+    )
+    
+    ### Validación extra: forzar que 'telefono_validador' tenga exactamente 12 dígitos
+    df['telefono_codigo'] = df['telefono_codigo'].where(df['telefono_codigo'].str.match(r'^\d{12}$'))
+
+##----------------------- Etapa 4. Conversión de tipos de datos ------------------------------------
+    columnas_a_convertir = [
+        'ultimos8_tarjeta',
+        'telefono',
+        'dia_nacimiento',
+        'mes_nacimiento',
+        'anio_nacimiento',
+        'codigo_postal'
+    ]
+
+    df[columnas_a_convertir] = df[columnas_a_convertir].astype('Int64')  # Soporta NaN
 
     # ----------------------- Validación de estructura -------------------------------------
     tipos_df = pd.DataFrame({
@@ -130,7 +155,7 @@ def main():
 
     print(tipos_df.to_string(index=False))
 
-    # ▶ Módulos de validación
+# ▶ Módulos de validación
     
     # Regla 1: Nombre nulo
     df['nulo_nombre'] = df['nombre'].isna() | (df['nombre'].astype(str).str.strip() == '')
@@ -181,12 +206,11 @@ def main():
         (df['registro_nulo'] == 1) & (df['tarjeta_existente'].astype(str).str.strip().str.lower() == 'sí')
     ).astype(int)
 
-
     # -------------------------------------- Resumen ---------------------------------
     print("Total registros con al menos un campo nulo:", df['registro_nulo'].sum())
     print("Registros nulos justificados por tarjeta existente:", df['nulo_existe_tarjeta'].sum())
 
-    # 🔹 Módulo 1: Detección de registros duplicados <a name="modulo-1-registros-duplicados"></a>
+# 🔹 Módulo 1: Detección de registros duplicados
 
     # Regla 1: Número de tarjeta duplicado (excluyendo nulos)
     df['duplicado_ultimos8_tarjeta'] = 0
@@ -298,7 +322,6 @@ def main():
             return ', '.join(map(str, sorted(duplicados_en_filas)))
         return None
 
-
     ## Paso 3: aplicar la función
     df['fila_duplicado'] = df.apply(obtener_fila_duplicado, axis=1)
 
@@ -314,7 +337,6 @@ def main():
         tipos = [tipo.strip() for tipo in row['tipo_duplicado'].split(',')]
         max_frecuencia = 1  # mínimo siempre aparece una vez
 
-
         for tipo in tipos:
             if tipo in campos:
                 col, dic = campos[tipo]
@@ -325,15 +347,13 @@ def main():
                         max_frecuencia = frecuencia
         return max_frecuencia
 
-
     # Aplicar al DataFrame
     df['frecuencia_duplicado'] = df.apply(obtener_frecuencia_duplicado, axis=1)
-
 
     # -------------------------------------- Resumen ---------------------------------
     print("Total de registros duplicados detectados:", df['registro_duplicado'].sum())
 
-    # 🔹 Módulo 2: Correos electrónicos inválidos <a name="modulo-2-correos-invalidos"></a>
+# 🔹 Módulo 2: Correos electrónicos inválidos
 
     #------------------------------- Máscara para valores nulos -------------------
     mask_correo = (
@@ -367,7 +387,6 @@ def main():
     ).astype(int)
 
     # Regla 3: correo_caracteres_prohibidos  (excluyendo nulos)
-    import re
 
     ## Expresión regular para detectar acentos, diéresis y ñ
     regex_acentos = re.compile(r'[áéíóúÁÉÍÓÚüÜñÑ]')
@@ -413,7 +432,6 @@ def main():
         mask_correo, 'correo_cliente'
     ].apply(lambda x: int(str(x).isdigit()))
 
-
     # Consolidado del módulo
     df['correo_invalido'] = (
         df['correo_sin_arroba'] |
@@ -447,13 +465,10 @@ def main():
     # Aplicar al DataFrame
     df['tipo_correo'] = df.apply(obtener_tipo_error_correo, axis=1)
 
-
     # -------------------------------------- Resumen ---------------------------------
     print("Total de registros con correo inválido (solo si hay correo real):", df['correo_invalido'].sum())
 
-    # 🔹 Módulo 3: Teléfonos inválidos <a name="modulo-3-telefonos-invalidos"></a>
-
-    import re
+# 🔹 Módulo 3: Teléfonos inválidos
 
     #------------------------------- Máscara para valores nulos -------------------
     mask_telefono_valido = df['telefono'].notna()
@@ -517,8 +532,7 @@ def main():
     # -------------------------------------- Resumen ----------------------------------------------------
     print("✅ Total de registros con teléfono inválido (excluyendo nulos):", df['telefono_invalido'].sum())
 
-    # 🔹 Módulo 4: Fechas de nacimiento inválidas <a name="modulo-4-fechas-invalidas"></a>
-    from datetime import datetime
+# 🔹 Módulo 4: Fechas de nacimiento inválidas
 
     # Inicializar columnas
     df['fecha_dia_invalido'] = 0
@@ -527,32 +541,26 @@ def main():
     df['fecha_no_real'] = 0
     df['fecha_edad_invalida'] = 0
 
-
     # Regla 1: Día fuera de rango
     df['fecha_dia_invalido'] = (
         ~df['dia_nacimiento'].between(1, 31)
     ).fillna(False).astype(int)
-
 
     # Regla 2: Mes fuera de rango
     df['fecha_mes_invalido'] = (
         ~df['mes_nacimiento'].between(1, 12)
     ).fillna(False).astype(int)
 
-
     # Regla 3: Año fuera de rango
     df['fecha_anio_invalido'] = (
         ~df['anio_nacimiento'].between(1920, 2006)
     ).fillna(False).astype(int)
 
-
     # Regla 4: Fecha no real (si fecha_completa es NaT)
     df['fecha_no_real'] = df['fecha_completa'].isna().astype(int)
 
-
     # Regla 5: Edad fuera del rango 18-105
     from datetime import datetime
-
 
     def edad_invalida(fecha):
         if pd.isna(fecha):
@@ -561,9 +569,7 @@ def main():
         edad = hoy.year - fecha.year - ((hoy.month, hoy.day) < (fecha.month, fecha.day))
         return int(not (18 <= edad <= 105))
 
-
     df['fecha_edad_invalida'] = df['fecha_completa'].apply(edad_invalida)
-
 
     # Consolidado
     df['fecha_invalida'] = (
@@ -573,7 +579,7 @@ def main():
         df['fecha_no_real'] |
         df['fecha_edad_invalida']
     ).astype(int)
-
+    
     # --------------------------------------------------------------
     # Etiqueta tipo_fecha: Clasifica el tipo de error en la fecha
     # --------------------------------------------------------------
@@ -586,75 +592,59 @@ def main():
         if row['fecha_edad_invalida']: errores.append('Edad inválida')
         return ', '.join(errores) if errores else None
 
-
     df['tipo_fecha_nacimiento'] = df.apply(tipo_fecha, axis=1)
 
     # -------------------------------------- Resumen ----------------------------------------------------
     print("✅ Total de registros con fecha inválida:", df['fecha_invalida'].sum())
 
-    # 🔹 Módulo 5: Posición GPS inválida <a name="modulo-5-posiciongps-invalidas"></a>
-    import re
-
+# 🔹 Módulo 5: Posición GPS inválida 
+    
     # Inicializamos columnas de error
     df['gps_sin_coma'] = 0
     df['latitud_invalida'] = 0
     df['longitud_invalida'] = 0
     df['gps_formato_roto'] = 0
 
-
     # Función para validar cada posición
     def validar_gps(pos):
         if pd.isna(pos):
             return (1, 1, 1, 1)  # Todo inválido si está vacío
-
 
         pos = str(pos).strip()
 
         if ',' not in pos:
             return (1, 1, 1, 1)  # Sin coma, todo roto
 
-
         partes = pos.split(',')
         if len(partes) != 2:
             return (1, 1, 1, 1)  # Más de una coma o sin coordenadas claras
 
-
         lat_txt, lon_txt = partes[0].strip(), partes[1].strip()
-
 
         # Quitar letras y símbolos típicos
         lat_clean = re.sub(r'[^0-9\.\-]', '', lat_txt)
         lon_clean = re.sub(r'[^0-9\.\-]', '', lon_txt)
 
-
         # Verificar solo un punto decimal
         if lat_clean.count('.') > 1 or lon_clean.count('.') > 1:
             return (0, 1, 1, 1)
-
-
         try:
             lat = float(lat_clean)
             if not -90 <= lat <= 90:
                 return (0, 1, 0, 1)
         except:
             return (0, 1, 0, 1)
-
-
         try:
             lon = float(lon_clean)
             if not -180 <= lon <= 180:
                 return (0, 0, 1, 1)
         except:
             return (0, 0, 1, 1)
-
-
         # Si todo bien:
         return (0, 0, 0, 0)
 
-
     # Aplicar la función
     df[['gps_sin_coma', 'latitud_invalida', 'longitud_invalida', 'gps_formato_roto']] = df['posicion_gps'].apply(validar_gps).apply(pd.Series)
-
 
     # Columna final de validación
     df['coordenada_invalida'] = (
@@ -663,7 +653,6 @@ def main():
         df['longitud_invalida'] |
         df['gps_formato_roto']
     ).astype(int)
-
 
     # Etiqueta del tipo de error
     def motivo_error(row):
@@ -680,19 +669,14 @@ def main():
     # -------------------------------------- Resumen ----------------------------------------------------
     print("✅ Total de registros con posición gps inválida:", df['coordenada_invalida'].sum())
 
-    from math import radians, sin, cos, sqrt, atan2
-
-
     # Coordenada fija
     lat_fija = 27.442758
     lon_fija = -99.543487
-
 
     # Función para calcular la distancia
     def calcular_distancia(row):
         if row['coordenada_invalida'] == 1:
             return None  # Saltar si la coordenada es inválida
-
 
         try:
             # Extraer y limpiar
@@ -700,39 +684,33 @@ def main():
             lat = float(re.sub(r'[^0-9\.\-]', '', lat_txt.strip()))
             lon = float(re.sub(r'[^0-9\.\-]', '', lon_txt.strip()))
 
-
             # Conversión a radianes
             lat1 = radians(lat_fija)
             lon1 = radians(lon_fija)
             lat2 = radians(lat)
             lon2 = radians(lon)
 
-
             # Diferencias
             dlat = lat2 - lat1
             dlon = lon2 - lon1
-
 
             # Fórmula de Haversine
             a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
             c = 2 * atan2(sqrt(a), sqrt(1 - a))
             R = 6371000  # radio de la Tierra en metros
 
-
             return R * c
         except:
             return None
 
-
     # Aplicar al DataFrame
     df['Distancia (m)'] = df.apply(calcular_distancia, axis=1)
 
-    # ▶ Validaciones cruzadas externas
+# ▶ Validaciones cruzadas externas
 
     # 1. Asegurar que los correos estén en formato string y en minúsculas (para evitar fallos por mayúsculas)
     df['correo_encuestador'] = df['correo_encuestador'].astype(str).str.strip().str.lower()
     enc_df['CORREO'] = enc_df['CORREO'].astype(str).str.strip().str.lower()
-
 
     # 2. Eliminar duplicados en enc_df por CORREO (por si hay duplicados en la base)
     enc_df = enc_df.drop_duplicates(subset='CORREO')
@@ -753,18 +731,16 @@ def main():
         how='left'
     )
 
-
     # -------------------------------------- Resumen ----------------------------------------------------
     asignados = df['Encuestador'].notna().sum()
     no_asignados = df['Encuestador'].isna().sum()
     total = df.shape[0]
 
-
     print(f"✅ Cruce realizado por correo. Registros con Encuestador asignado: {asignados}")
     print(f"❌ Sin asignar: {no_asignados}")
     print(f"📊 Total de registros: {total} | Columnas: {df.shape[1]}")
 
-    # ▶ Total de registros inválidos <a name="validacion-final"></a>
+# ▶ Total de registros inválidos
 
     df['registro_invalido'] = (
         df['registro_nulo'] |
@@ -792,15 +768,14 @@ def main():
     # -------------------------------------- Resumen ----------------------------------------------------
     print("✅ Total de registros inválidos globales:", df['registro_invalido'].sum())
 
-    # 🔹Resultados <a name="exportacion-resultados"></a>
-
+# 🔹Resultados 
+    
     # Mostrar número de filas y columnas
     print(f"📊 El DataFrame tiene {df.shape[0]} filas y {df.shape[1]} columnas.\n")
 
     # Mostrar listado de columnas y sus tipos
     print("📌 Columnas y tipos de dato:")
     print(df.dtypes.reset_index().rename(columns={"index": "Columna", 0: "Tipo de dato"}).to_string(index=False))
-
 
     # Ejemplo corto para no exceder el tamaño:
     df['formato'] = 'Mercado'
