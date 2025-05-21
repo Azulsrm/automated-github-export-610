@@ -2,8 +2,18 @@ name: Exportar Excel y subir a Release
 
 on:
   schedule:
-    - cron: '0,30 15-23 * * 1-6'  # Cada 30 min de 9 a 17 CDMX (15 a 23 UTC), lunes a sábado
-    - cron: '0,30 0,1,2 * * 2-7'     # Cada 30 min de 18 a 20:30 CDMX (00:00 a 02:30 UTC), pero de martes a domingo
+    # Bloque 1 – De 9:00 a 17:30 CDMX (lunes a sábado) → 15:00–23:30 UTC
+    - cron: '0,30 15-23 * * 1-6'
+    
+    # Bloque 2 – De 18:00 a 20:30 CDMX (lunes a sábado, contado como martes a domingo UTC)
+    - cron: '0 0 * * 2-7'    # 6:00 p.m.
+    - cron: '30 0 * * 2-7'   # 6:30 p.m.
+    - cron: '0 1 * * 2-7'    # 7:00 p.m.
+    - cron: '30 1 * * 2-7'   # 7:30 p.m.
+    - cron: '0 2 * * 2-7'    # 8:00 p.m.
+    - cron: '30 2 * * 2-7'   # 8:30 p.m.
+    
+  workflow_dispatch:
 
 jobs:
   exportar_y_subir:
@@ -12,7 +22,7 @@ jobs:
     steps:
     - name: Verificar ejecución
       run: echo "Workflow activado a las $(date)"
-      
+
     - name: Clonar repo
       uses: actions/checkout@v3
 
@@ -27,7 +37,7 @@ jobs:
         pip install pandas numpy requests openpyxl google-auth google-api-python-client
 
     - name: Ejecutar script
-      run: python script_mercado610palenque.py  # NOMBRE
+      run: python script_mercado610palenque.py
 
     - name: Crear Release (forzar reemplazo)
       uses: softprops/action-gh-release@v1
@@ -48,4 +58,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 
-  
