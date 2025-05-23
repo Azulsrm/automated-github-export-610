@@ -1,0 +1,30 @@
+name: Upload Excel to OneDrive
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Cada 30 minutos
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar archivo del release
+        uses: robinraju/release-downloader@v1.9
+        with:
+          repository: Azulsrm/automated-github-export-610
+          fileName: Respuestas_610.xlsx
+          latest: true
+
+      - name: Subir a OneDrive
+        uses: aymannadeem/onedrive-upload-action@v2.1
+        with:
+          drive: "me"
+          folder: "/PowerBI"
+          filename: "Respuestas_610.xlsx"
+          localfile: "Respuestas_610.xlsx"
+          client-id: ${{ secrets.ONEDRIVE_CLIENT_ID }}
+          client-secret: ${{ secrets.ONEDRIVE_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.ONEDRIVE_REFRESH_TOKEN }}
+          tenant-id: ${{ secrets.ONEDRIVE_TENANT_ID }}
+
