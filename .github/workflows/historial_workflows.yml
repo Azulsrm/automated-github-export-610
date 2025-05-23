@@ -1,0 +1,40 @@
+name: Obtener historial de ejecuciones
+
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  ejecutar-script:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - name: Clonar repo
+        uses: actions/checkout@v4
+
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+
+      - name: Instalar dependencias
+        run: pip install requests
+
+
+      - name: Ejecutar script
+        run: |
+          python3 script_historial.py
+
+
+
+
+
+
+
+
+
+
