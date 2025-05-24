@@ -380,7 +380,7 @@ def main():
     # Regla 2: correo_dominio_invalido  (excluyendo nulos)
     dominios_validos = [
         '@gmail.com', '@hotmail.com', '@yahoo.com', '@yahoo.com.mx',
-        '@live.com', '@outlook.es', '@icloud.com'
+        '@live.com', '@outlook.es', '@icloud.com', '@outlook.com'
     ]
     df.loc[mask_correo, 'correo_dominio_invalido'] = (
         ~df.loc[mask_correo, 'dominio_correo'].isin(dominios_validos)
