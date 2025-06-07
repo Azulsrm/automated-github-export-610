@@ -76,23 +76,34 @@ def main():
     )
 
     ## ------------------ 3. correo_completo: Concatenación del correo del encuestado
-
-    # Asegurarse de que todos los valores sean string y quitar espacios
+    # --- 1. Preparar valores base ---
     df['correo_cliente'] = df['correo_cliente'].astype(str).str.strip()
     df['dominio_correo'] = df['dominio_correo'].astype(str).str.strip()
-
-
-    # Reemplazar textos vacíos o "nan" convertidos en texto por None
-    df['correo_cliente'] = df['correo_cliente'].replace(['', 'nan', 'None'], None)
-    df['dominio_correo'] = df['dominio_correo'].replace(['', 'nan', 'None'], None)
-
-
-    # Concatenar solo si ambos valores no son None
+    
+    # --- 2. Limpiar y crear correo_completo ---
+    caracteres_prohibidos = [' ', ',', ';', '/', '\\', '%', '&']
+    regex_acentos = re.compile(r'[áéíóúÁÉÍÓÚüÜñÑ]')
+    reemplazos = str.maketrans('áéíóúÁÉÍÓÚüÜñÑ', 'aeiouAEIOUuunn')
+    
+    def limpiar_correo(correo):
+        correo = str(correo).lower().strip()
+        correo = correo.translate(reemplazos)
+        correo = correo.replace(' ', '').replace('@@', '@')
+        for c in caracteres_prohibidos:
+            correo = correo.replace(c, '')
+        if '@' in correo:
+            usuario, dominio = correo.split('@', 1)
+            if dominio.startswith("gmail"):
+                usuario = usuario.replace('.', '').replace('_', '')
+                correo = usuario + '@' + dominio
+        return correo
+    
+    # Concatenar y limpiar solo si ambos campos no están vacíos
     df['correo_completo'] = df.apply(
-        lambda row: row['correo_cliente'] + row['dominio_correo']
-        if row['correo_cliente'] and row['dominio_correo'] else None, axis=1
+        lambda row: limpiar_correo(row['correo_cliente'] + row['dominio_correo'])
+        if row['correo_cliente'] and row['dominio_correo'] else None,
+        axis=1
     )
-
     #-------------------- 4.Fecha_completa
     ##-------------------- Máscara para registros con día, mes y año no nulos --------------------
     mask_fecha_completa = df[['anio_nacimiento', 'mes_nacimiento', 'dia_nacimiento']].notna().all(axis=1)
@@ -354,7 +365,6 @@ def main():
     print("Total de registros duplicados detectados:", df['registro_duplicado'].sum())
 
 # 🔹 Módulo 2: Correos electrónicos inválidos
-
     #------------------------------- Máscara para valores nulos -------------------
     mask_correo = (
         df['correo_cliente'].notna() &
@@ -366,7 +376,6 @@ def main():
     # Inicializar todas las variables en 0
     df['correo_sin_arroba'] = 0
     df['correo_dominio_invalido'] = 0
-    df['correo_caracteres_prohibidos'] = 0
     df['correo_formato_invalido'] = 0
     df['correo_longitud_invalida'] = 0
     df['correo_soriana'] = 0
@@ -385,26 +394,8 @@ def main():
     df.loc[mask_correo, 'correo_dominio_invalido'] = (
         ~df.loc[mask_correo, 'dominio_correo'].isin(dominios_validos)
     ).astype(int)
-
-    # Regla 3: correo_caracteres_prohibidos  (excluyendo nulos)
-
-    ## Expresión regular para detectar acentos, diéresis y ñ
-    regex_acentos = re.compile(r'[áéíóúÁÉÍÓÚüÜñÑ]')
-
-    ## Lista de caracteres especiales adicionales
-    caracteres_prohibidos = [' ',',', ';', '/', '\\', '%', '&']
-
-    ## Aplicar regla combinada
-    df.loc[mask_correo, 'correo_caracteres_prohibidos'] = df.loc[
-        mask_correo, 'correo_cliente'
-    ].apply(
-        lambda x: int(
-            bool(regex_acentos.search(str(x))) or
-            any(c in str(x) for c in caracteres_prohibidos)
-        )
-    )
-
-    # Regla 4: correo_formato_invalido  (excluyendo nulos)
+    
+    # Regla 3: correo_formato_invalido  (excluyendo nulos)
     def formato_invalido(correo):
         if '@' not in correo or correo.count('@') != 1:
             return 1
@@ -417,17 +408,17 @@ def main():
         mask_correo, 'correo_completo'
     ].apply(formato_invalido)
 
-    # Regla 5: correo_longitud_invalida  (excluyendo nulos)
+    # Regla 4: correo_longitud_invalida  (excluyendo nulos)
     df.loc[mask_correo, 'correo_longitud_invalida'] = (
         df.loc[mask_correo, 'correo_completo'].str.len() < 6
     ).astype(int)
 
-    # Regla 6: correo_soriana  (excluyendo nulos)
+    # Regla 5: correo_soriana  (excluyendo nulos)
     df.loc[mask_correo, 'correo_soriana'] = (
         df.loc[mask_correo, 'dominio_correo'].str.lower() == '@soriana.com'
     ).astype(int)
 
-    #Regla 7: correo_numerico
+    #Regla 6: correo_numerico
     df.loc[mask_correo, 'correo_numerico'] = df.loc[
         mask_correo, 'correo_cliente'
     ].apply(lambda x: int(str(x).isdigit()))
@@ -436,7 +427,6 @@ def main():
     df['correo_invalido'] = (
         df['correo_sin_arroba'] |
         df['correo_dominio_invalido'] |
-        df['correo_caracteres_prohibidos'] |
         df['correo_formato_invalido'] |
         df['correo_longitud_invalida'] |
         df['correo_soriana'] |
@@ -450,7 +440,6 @@ def main():
     errores_correo = [
         ('correo_sin_arroba', 'Sin arroba'),
         ('correo_dominio_invalido', 'Dominio inválido'),
-        ('correo_caracteres_prohibidos', 'Caracteres prohibidos'),
         ('correo_formato_invalido', 'Formato inválido'),
         ('correo_longitud_invalida', 'Longitud'),
         ('correo_soriana', 'Dominio Soriana'),
